@@ -199,19 +199,19 @@ RemoveUnwanted <- function(file) {
   file$LSOA.name <- NULL
   file$Context <- NULL
   return(file)
-  
 }
 
-file1 <- RemoveUnwanted(file1)
+AddWanted <- function(file) {
+  file$Postcode.sector <- "c0"
+}
 
 ReplaceLatLong <- function(file) {
-  file$Postcode.sector <- "c0"
-  for (i in 1:nrow(file)) {
-    long <- file[i, which(colnames(file)=="Longitude")]
-    lat <- file[i, which(colnames(file)=="Latitude")]
-    col.of.post <- which(colnames(file)=="Postcode.sector")
-    temp.string <- paste("api.postcodes.io/postcodes?lon=", toString(long), "&l
-                         at=", toString(lat))
+  for (i in as.numeric(1:nrow(file))) {
+    long <- file[i, as.numeric(which(colnames(file)=="Longitude"))]
+    lat <- file[i, as.numeric(which(colnames(file)=="Latitude"))]
+    col.of.post <- as.numeric(which(colnames(file)=="Postcode.sector"))
+    temp.string <- paste("api.postcodes.io/postcodes?lon=", toString(long), 
+                         "&lat=", toString(lat))
     temp.string <- toString(gsub(" ", "", temp.string, fixed = TRUE))
     r <- GET(temp.string)
     postcode <- (content(r)$result[[1]][1])
@@ -230,8 +230,14 @@ ReplaceLatLong <- function(file) {
 }
 
 #r <- GET("api.postcodes.io/postcodes?lon=-0.113767&lat=51.517372")
-file2 <- ReplaceLatLong(file1)
 
+CleanRecords <- function(file) {
+  file <- RemoveUnwanted(file)
+  file <- AddWanted(file)
+  file <- ReplaceLatLong(file)
+}
+
+temp.months <- CleanRecords(temp.months)
 
 #Prepare crimes.data ----------------------------------------------------------
 
@@ -333,10 +339,10 @@ AddToCrimes <- function(post, mont, type, crimes) {
 #Get relevant info from each crime and pass to be added to file
 CalculateStats <- function(data) {
   social <- c("Anti-social behaviour", "public order")
-  theft <- c("Theft from the person", "Burglary", "Other theft", "Bicycle theft
-             ", "Shoplifting", "Vehicle crime", "Robbery")
-  other <- c("Criminal damage and arson", "  Violence and sexual offences", "Dr
-             ugs", "Possession of weapons", "Other crime", "Violent crime")
+  theft <- c("Theft from the person", "Burglary", "Other theft", "Bicycle theft",
+             "Shoplifting", "Vehicle crime", "Robbery")
+  other <- c("Criminal damage and arson", "  Violence and sexual offences",
+             "Drugs", "Possession of weapons", "Other crime", "Violent crime")
   notinc <- vector(mode="character", length=10)
   temp.int <- 1
   all.levels <- c(social, theft, other)
@@ -347,10 +353,13 @@ CalculateStats <- function(data) {
   s <- 0
   t <- 0
   o <- 0
+  x <- 0
   for (i in 1:nrow(data)) {
     
-    post <- data[i, which(colnames(data)=="Post")]
+    post <- data[i, which(colnames(data)=="Postcode.sector")]
     postcode.sector <- GetPostcodeSector(post)
+    mon <- toString(data[i, which(colnames(data)=="Month")])
+    
     if (data[i, which(colnames(data)=="Crime.type")] %in% social) {
       s <- s+1
       typ <- 1
@@ -368,7 +377,7 @@ CalculateStats <- function(data) {
     
     #print("BEFORE ADDTOCRIMES IS CALLED :::::")
     #print(crimes.data[, 1:3])
-    
+    print(postcode.sector)
     crimes.data <- AddToCrimes(postcode.sector, mon, typ, crimes.data)
     
     
@@ -384,7 +393,7 @@ CalculateStats <- function(data) {
   return(crimes.data)
 }
 
-crimes.data <- CalculateStats(file2)
+crimes.data <- CalculateStats(temp.months)
 
 
 

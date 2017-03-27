@@ -29,7 +29,7 @@ GetPostcodeSector <- function(postcode) {
 }
 
 #LR.mod$Postcode.sector <- "c0"
-for (i in 37770:nrow(LR.mod)) {
+for (i in 113000:771192) {
   #col.num <- as.integer(which(colnames(LR.mod)=="post_code"))
   postcode <- toString(LR.mod[i, 16])
   LR.mod[i, 28] = toString(GetPostcodeSector(postcode))
