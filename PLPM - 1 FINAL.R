@@ -189,55 +189,66 @@ file1 <- Compile.months.list(police.reports)
 
 #big.file.list <- MergeAllFiles(police.reports)
 
+
+#Merge Crime Files-------------------------------------------------------------
+
+y <- data.frame()
+for (i in 1:49) {
+  y <- rbind(y, eval(as.name(paste("month", i))))
+}
+
+
 #Clean Up Records -------------------------------------------------------------
 
-RemoveUnwanted <- function(file) {
-  file$Crime.ID <- NULL
-  file$Reported.by <- NULL
-  file$Location <- NULL
-  file$LSOA.code <- NULL
-  file$LSOA.name <- NULL
-  file$Context <- NULL
-  return(file)
+RemoveUnwanted <- function(file1) {
+  file1$Crime.ID <- NULL
+  file1$Reported.by <- NULL
+  file1$Location <- NULL
+  file1$LSOA.code <- NULL
+  file1$LSOA.name <- NULL
+  file1$Context <- NULL
+  file1$Last.outcome.category <- NULL
+  return(file1)
 }
 
-AddWanted <- function(file) {
-  file$Postcode.sector <- "c0"
+AddWanted <- function(file2) {
+  file2$Postcode.sector <- "c0"
+  return(file2)
 }
 
-ReplaceLatLong <- function(file) {
-  for (i in as.numeric(1:nrow(file))) {
-    long <- file[i, as.numeric(which(colnames(file)=="Longitude"))]
-    lat <- file[i, as.numeric(which(colnames(file)=="Latitude"))]
-    col.of.post <- as.numeric(which(colnames(file)=="Postcode.sector"))
+ReplaceLatLong <- function(file3) {
+  for (i in 1:nrow(file3)) {
+    long <- file3[i, as.numeric(which(colnames(file3)=="Longitude"))]
+    lat <- file3[i,as.numeric(which(colnames(file3)=="Latitude"))]
+    col.of.post <- as.numeric(which(colnames(file3)=="Postcode.sector"))
     temp.string <- paste("api.postcodes.io/postcodes?lon=", toString(long), 
                          "&lat=", toString(lat))
     temp.string <- toString(gsub(" ", "", temp.string, fixed = TRUE))
     r <- GET(temp.string)
     postcode <- (content(r)$result[[1]][1])
-    #print(temp.string)
-    #print(postcode)
     if (!is.null(postcode)) {
-      file[i,col.of.post] = postcode
+      file3[i,col.of.post] = postcode
     }
     #If no valid postcode use previous row (file sorted by long, number missing
     #<1% so not disastrous assumption)
     else {
-      file[i,col.of.post] = file[i-1,col.of.post]
+      file3[i,col.of.post] = file3[i-1,col.of.post]
       } 
   }
-    return(file)
+    return(file3)
 }
 
-#r <- GET("api.postcodes.io/postcodes?lon=-0.113767&lat=51.517372")
+r <- GET("api.postcodes.io/postcodes?lon=-0.113767&lat=51.517372")
+borough <- (content(r)$result[[1]][18])
 
-CleanRecords <- function(file) {
-  file <- RemoveUnwanted(file)
-  file <- AddWanted(file)
-  file <- ReplaceLatLong(file)
+CleanRecords <- function(file4) {
+  file4 <- RemoveUnwanted(file4)
+  file4 <- AddWanted(file4)
+  file4 <- ReplaceLatLong(file4)
+  return(file4)
 }
 
-temp.months <- CleanRecords(temp.months)
+temp.months <- CleanRecords(y)
 
 #Prepare crimes.data ----------------------------------------------------------
 
@@ -262,12 +273,12 @@ PopulateVector <- function(vec) {
 
 
 months.vec <- PopulateVector(months.vec)
-m <- matrix(0, ncol = 73, nrow = 1)
+m <- matrix(0, ncol = 49, nrow = 1)
 crimes.data <- data.frame(m)
 
 
 for(i in 1:length(crimes.data)) {
-  names(crimes.data)[i] <- toString(months.vec[i])
+  names(crimes.data)[i] <- i
 }
 
 
@@ -339,10 +350,11 @@ AddToCrimes <- function(post, mont, type, crimes) {
 #Get relevant info from each crime and pass to be added to file
 CalculateStats <- function(data) {
   social <- c("Anti-social behaviour", "public order")
-  theft <- c("Theft from the person", "Burglary", "Other theft", "Bicycle theft",
-             "Shoplifting", "Vehicle crime", "Robbery")
+  theft <- c("Theft from the person", "Burglary", "Other theft",
+             "Bicycle theft", "Shoplifting", "Vehicle crime", "Robbery")
   other <- c("Criminal damage and arson", "  Violence and sexual offences",
-             "Drugs", "Possession of weapons", "Other crime", "Violent crime")
+             "Drugs", "Possession of weapons", "Public disorder and weapons",
+             "Other crime", "Violent crime")
   notinc <- vector(mode="character", length=10)
   temp.int <- 1
   all.levels <- c(social, theft, other)

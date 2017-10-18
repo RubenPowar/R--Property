@@ -1,4 +1,4 @@
-#Investigate distributions
+#Investigate distributions=====================================================
 
 install.packages('httr')
 library(httr)
@@ -33,7 +33,8 @@ descdist(prices3, discrete = FALSE)
 #remove bottom and top 1% of values in prices3
 prices3 <- sort(prices3)
 
-prices3.trim <- prices3[(length(prices3)/100):(length(prices3)-(length(prices3)/100))]
+prices3.trim <- prices3[(length(prices3)/100):(length(prices3)-(length(prices3)
+                                                                /100))]
 
 #compare range of prices3 and prices3.trim
 print(paste(min(prices3), "-", max(prices3), "and", min(prices3.trim), "-", max(prices3.trim)))
